@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>finger</title>
+		<style>
+			*{
+				margin: 0;
+				padding: 0;
+			}
+			img{
+				vertical-align: top;
+			}
+			.box_in{
+				width:640px;
+				height: 640px;
+				overflow: hidden;
+				margin-bottom: 20px;
+			}
+			.opa{
+				display: block;
+				width:200px;
+				height: 100px;
+				background:aquamarine;
+				font-size:30px;
+				text-align: center;
+				line-height: 100px;
+				position: relative;
+				text-decoration: none;
+				color: #000;
+				margin-left: 208px;
+			}
+			#uploadfile{
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				opacity: 0;
+			}
+	    	.cut{
+				width:100%;
+				height:100%;
+				position:fixed;
+				top:0;
+				left:50%;
+				-webkit-transform:translate(-50%,0);
+						transform:translate(-50%,0);
+				z-index:9;
+				display: none;
+				background: #000;
+			}
+			.cut .mask{
+				width:100%;
+				height:100%;
+				position:absolute;
+				top:0;
+				left:0;
+				z-index:2;
+				background:url(images/mask.png) no-repeat center center;
+				pointer-events:none;
+			}
+			.cut .btns{
+				width:100%;
+				text-align:center;
+				font-size:0;
+				position:absolute;
+				left:0;
+				bottom:10%;
+				z-index:3;
+			}
+			.cut .btns a{
+				display:inline-block;
+				width:80px;
+				height:30px;
+				line-height:30px;
+				background:#a40000;
+				color:#fff;
+				text-align:center;
+				margin:0 10px;
+				font-size:14px;
+			}
+			.text{
+				position:absolute;
+				width:100%;
+				height: 100%;
+				color: #fff;
+				font-size: 16px;
+				z-index: 2;
+				pointer-events: none;
+			}
+			
+		</style>
+		<script src="js/exif.js"></script>
+		<script>
+			var phoneWidth = parseInt(window.screen.width);
+	        var phoneScale = phoneWidth / 640;
+	        var ua = navigator.userAgent;
+	        if (/Android (\d+\.\d+)/.test(ua)) {
+	            var version = parseFloat(RegExp.$1);
+	            if (version > 2.3) {
+	                document.write('<meta name="viewport" content="width=640, minimum-scale = ' + phoneScale + ', maximum-scale = ' + phoneScale + ', target-densitydpi=device-dpi">');
+	            } else {
+	                document.write('<meta name="viewport" content="width=640, target-densitydpi=device-dpi">');
+	            }
+	        } else {
+	            document.write('<meta name="viewport" content="width=640, user-scalable=no, target-densitydpi=device-dpi">');
+	        }
+		</script>		
+	</head>
+	<body>
+		<div class="box">
+			<div class="box_in">
+				<img src="images/396019905312035908.png" class="opaImg"/>
+			</div>
+
+			<a href="javascript:;" class="opa">
+				选择照片
+				<input type="file"  name="pic"  id="uploadfile" accept="image/*" capture="camera" onchange="selectFileImage(this)"/>
+			</a>
+		</div>
+	    <div class="cut">
+	    	<div class="mask"></div>
+	    	<div class="text"></div>
+	        <img src="images/head.png" id="hit">
+	        <div class="btns">
+	       		<a href="javascript:void(0)" class="reChoose">重新选择</a>
+	            <a href="javascript:void(0)" class="cutBtn">确定裁切</a>
+	        </div>
+	    </div>
+		
+
+	</body>
+	<script>
+		var opa = document.querySelector('.opaImg');
+		var cut = document.querySelector('.cut');
+		var rechoose = document.querySelector('.reChoose');
+		var getFile = document.querySelector('#uploadfile');
+		var cutBtn = document.querySelector('.cutBtn');
+		var hit = document.querySelector('#hit');
+		var oT = document.querySelector('.text');
+		var str='';
+		var	tu="",//上传的图片后第一次处理好的src
+			intW=640,//图片的最大宽度
+			start_X=0,//初始X位置
+			start_Y=0,//初始Y位置
+			imgW=0,//处理好的图片的宽
+			imgH=0,//处理好的图片的高
+			x=0,//图片X方向位移
+			y=0,//图片Y方向位移
+			s=1,//图片缩放比例
+			cutImgW=200,//裁切区域的宽
+			cutImgH=200;//裁切区域的高
+		var startX,startY,
+			moveX,moveY,
+			disX,disY;
+		var endX=0;
+		var endY=0;
+		var edsX=0;//手指松开后存X位置
+		var edsY=0;//手指松开后存Y位置
+		var c={
+				x:0,
+				y:0
+			};//存储图片中心点位置
+		var newP={
+				x:0,
+				y:0
+			};//通过c计算出最新img的位置
+		
+		hit.addEventListener('touchstart',fnDown,false);
+		function fnDown(ev){
+			var oldS=s;
+			if(ev.targetTouches.length==2){
+				var downS=getS(ev);
+			}
+			startX=ev.targetTouches[0].pageX;
+			startY=ev.targetTouches[0].pageY;
+			str=str+'start: x:'+x+',y:'+y+',newP.x:'+newP.x.toFixed(2)+',newP.y:'+newP.y.toFixed(2)+',s:'+s.toFixed(2)+'<br>';
+//			oT.innerHTML=str;
+			
+			function fnMove(ev){
+				moveX=ev.targetTouches[0].pageX;
+				moveY=ev.targetTouches[0].pageY;
+				disX=moveX-startX;
+				disY=moveY-startY;
+				x=disX+edsX+start_X;
+				y=disY+edsY+start_Y;
+				c={
+					x:x+imgW/2,
+					y:y+imgH/2
+				};
+				if(ev.targetTouches.length==2){
+					s=oldS*(getS(ev)/downS);
+				}
+				fnAct();
+				getC();
+				str=str+'Move: x:'+x+',y:'+y+',newP.x:'+newP.x.toFixed(2)+',newP.y:'+newP.y.toFixed(2)+',s:'+s.toFixed(2)+'<br>';
+//				oT.innerHTML=str;
+				console.log('x:'+x+',y:'+y+',endX:'+endX+',endY:'+endY);
+				
+				ev.preventDefault();
+			}
+			function fnEnd(ev){
+				hit.removeEventListener('touchmove',fnMove,false);
+				hit.removeEventListener('touchend',fnEnd,false);
+				endX=ev.changedTouches[0].pageX;
+				endY=ev.changedTouches[0].pageY;
+				edsX=x-start_X;
+				edsY=y-start_Y;
+				c={
+					x:edsX+imgW/2,
+					y:edsY+imgH/2
+				}
+				getC();
+				str=str+'End: x:'+x+',y:'+y+',newP.x:'+newP.x.toFixed(2)+',newP.y:'+newP.y.toFixed(2)+',s:'+s.toFixed(2)+'<br>';
+//				oT.innerHTML=str;
+				//console.log('endX:'+endX+',endY:'+endY);
+			}
+			
+			hit.addEventListener('touchmove',fnMove,false);
+			hit.addEventListener('touchend',fnEnd,false);
+			ev.preventDefault();
+		}
+		
+		//单点触控，只改变box的位置
+		function fnAct(){
+			hit.style.WebkitTransform='translate3d('+x+'px,'+y+'px,0px) scale('+s+','+s+')';
+			hit.style.transform='translate3d('+x+'px,'+y+'px,0px) scale('+s+','+s+')';
+		}
+		//多点触控，只改变box的缩放比例
+		function fnBct(){
+			hit.style.WebkitTransform='scale('+s+','+s+')';
+			hit.style.transform='scale('+s+','+s+')';
+		}
+		
+		function getC(){
+			if(s>0){
+				newP={
+					x:c.x-imgW*s/2,
+					y:c.y-imgH*s/2
+				}
+			}else{
+				newP={
+					x:c.x+imgW*s/2,
+					y:c.y+imgH*s/2
+				}
+			}
+		}
+		
+		function cutShow(tu){
+			var oImg=new Image();
+			oImg.src = tu;
+			oImg.onload = function(){
+				imgW = this.naturalWidth;  
+				imgH = this.naturalHeight;
+				hit.src = oImg.src;
+				cut.style.display='block';
+				start_X=Math.round((window.innerWidth-hit.offsetWidth)/2);
+				start_Y=Math.round((window.innerHeight-hit.offsetHeight)/2);
+				str='';
+				oT.innerHTML='';
+				//console.log(window.innerWidth,window.innerHeight,hit.offsetWidth);
+				resetElement();
+				//console.log('x:'+x+',y:'+y+',endX:'+endX+',endY:'+endY);
+				fnAct();
+				cutBtn.onclick = function(){
+					cutcut();
+				};
+			};
+		}
+		
+		function cutcut(){
+			cut.style.display='none';
+			var oC=document.createElement('canvas');
+			var gd=oC.getContext('2d');
+			var oImg=new Image();
+			var top=(window.innerHeight-cutImgH)/2;
+			var left=(window.innerWidth-cutImgW)/2;
+			oC.width=cutImgW;
+			oC.height=cutImgH;
+			oImg.src=tu;
+			oImg.onload=function(){
+				gd.drawImage(
+					oImg,
+					x+(imgW-imgW*s)/2-left,y+(imgH-imgH*s)/2-top,imgW*s,imgH*s
+				);
+				var okURL=oC.toDataURL("image/jpeg");
+				//console.log(okURL);
+				var img2=new Image();
+				img2.src=okURL;
+				img2.onload=function(){
+					opa.src=img2.src;
+				}
+			}
+			
+			
+		}
+		
+		rechoose.onclick = function(){
+			getFile.click();
+		};
+		
+		
+		
+		
+		function selectFileImage(fileObj) {
+			var file = fileObj.files['0'];  
+			var Orientation = null;  
+			if (file) {  
+				console.log("正在上传,请稍后...");  
+				//获取照片方向角属性，用户旋转控制  
+				EXIF.getData(file, function() {  
+					EXIF.getAllTags(this);   
+					Orientation = EXIF.getTag(this, 'Orientation');  
+		
+				});  
+				var oReader = new FileReader();  
+				oReader.onload = function(e) {  
+					var image = new Image();  
+					image.src = e.target.result;  
+					image.onload = function() {  
+						var w = this.naturalWidth;  //获取图片原始大小
+						var h = this.naturalHeight;  
+						var expectWidth,expectHeight;
+						if (w > intW) {  
+							expectWidth = intW;  
+							expectHeight = expectWidth*h/w;  
+						}else{
+							expectWidth=w;
+							expectHeight=h;
+						}
+						var canvas = document.createElement("canvas");  
+						var ctx = canvas.getContext("2d");  
+						canvas.width = expectWidth;  
+						canvas.height = expectHeight;  
+						var base64 = null;  
+						var xpos = canvas.width/2;
+						var ypos = canvas.height/2;
+						//如果方向角不为1，都需要进行旋转  
+						if(Orientation && Orientation != "" && Orientation != 1){  
+							var degree=0;
+							switch(Orientation){  
+								case 6://需要顺时针（向左）90度旋转  
+									degree=90;  
+									canvas.width = expectHeight;  
+									canvas.height = expectWidth;
+									ctx.rotate(degree * Math.PI / 180);
+									ctx.drawImage(image, 0,-expectHeight,expectWidth,expectHeight);
+									break;  
+								case 8://需要逆时针（向右）90度旋转  ;
+									degree=-90;  
+									canvas.width = expectHeight;  
+									canvas.height = expectWidth;
+									ctx.rotate(degree * Math.PI / 180);
+									ctx.drawImage(image,-expectWidth,0,expectWidth,expectHeight);
+									break;  
+								case 3://需要180度旋转  
+									degree=-180;  
+									ctx.rotate(degree * Math.PI / 180);
+									ctx.drawImage(image,-expectWidth,-expectHeight,expectWidth,expectHeight);
+									break;  
+							}         
+						}else{
+							ctx.drawImage(image,0,0,expectWidth,expectHeight);
+						} 
+						tu=canvas.toDataURL("image/jpeg");
+						cutShow(tu);
+					};  
+				};  
+				oReader.readAsDataURL(file);  
+			}  
+		}
+		
+		//获取两根手指之间的距离
+		function getS(ev){
+			var x1=ev.targetTouches[0].pageX;
+			var x2=ev.targetTouches[1].pageX;
+			var y1=ev.targetTouches[0].pageY;
+			var y2=ev.targetTouches[1].pageY;
+			var a=x1-x2;
+			var b=y1-y2;
+			var c=Math.sqrt(a*a+b*b);
+			return c;
+		}
+		//重置参数
+		function resetElement() {
+			x=start_X;
+			y=start_Y;
+			edsX=0;
+			edsY=0;
+			s=1;
+			c={
+				x:start_X+imgW/2,
+				y:start_Y+imgH/2,
+				
+			}
+			getC();
+		}
+		
+	</script>
+</html>
