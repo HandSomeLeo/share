@@ -37,7 +37,7 @@
 		}
 		getC();
 	}
-####单点触控，只改变box的位置
+#### 单点触控，只改变box的位置
 
 	function fnAct(){
 		hit.style.WebkitTransform='translate3d('+x+'px,'+y+'px,0px) scale('+s+','+s+')';
