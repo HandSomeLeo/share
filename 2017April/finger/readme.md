@@ -95,9 +95,34 @@
 		fnAct();
 	}
 
-#### 关于canvas画图，需要解决跨域问题，和图片加载问题，图片必须先加载一遍，才能画图
+#### 关于canvas画图，需要解决跨域问题，和图片加载问题，图片必须先加载一遍，才能画图，loadpng()就是用了递归的思想
 	
-  
+  	var changeY = 86;
+	var oC=document.createElement('canvas');
+	var gd=oC.getContext('2d');
+	oC.width = 640;
+	oC.height = 3146+changeY;
+	var iNow = 0;
+	var arr = [
+		sourceUrl + '/images/com_down.jpg',
+		sourceUrl + '/images/show.png',
+		sourceUrl + '/images/com_back.jpg',
+		testLogo.src
+	];
+	loadPng();
+	function loadPng(){
+		var oImg = new Image();
+		oImg.src = arr[iNow];
+		oImg.onload = function(){
+			if(iNow<arr.length-1){
+				iNow++;
+				loadPng();
+			}else{
+				fnDraw();
+			}
+		};
+	}
+
   
   
   
