@@ -1,15 +1,16 @@
 关于获取用户上传图片，并处理成base64上传到服务器的方法，在这里采用了exif的技术，可以直接down整个test项目查看
 
 
-1、通过							
+
+### 1、通过触发selectFileImage()方法						
 <input type="file"  name="pic"  id="uploadfile" accept="image/*" capture="camera" onchange="selectFileImage(this)"/>
-触发selectFileImage()方法
-2、待裁切页面展示，调用cutShow(tu)；	
-3、在指定位置裁切整个图片，调用cutcut()；
 
-总结，主要难点，在于获取图片在裁切区域的x，y轴数据，以及canvas的画图
+### 2、待裁切页面展示，调用cutShow(tu)；	
+### 3、在指定位置裁切整个图片，调用cutcut()；
 
-自己写了几个方法
+//总结，主要难点，在于获取图片在裁切区域的x，y轴数据，以及canvas的画图
+
+//自己写了几个方法
 
 //获取两根手指之间的距离，用来计算缩放比例
 function getS(ev){
@@ -37,6 +38,7 @@ function resetElement() {
 	getC();
 }
 //单点触控，只改变box的位置
+
 function fnAct(){
 	hit.style.WebkitTransform='translate3d('+x+'px,'+y+'px,0px) scale('+s+','+s+')';
 	hit.style.transform='translate3d('+x+'px,'+y+'px,0px) scale('+s+','+s+')';
